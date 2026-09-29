@@ -1,5 +1,7 @@
 <resources>
-    <color name="primary">#005A7C</color>
-    <color name="primary_dark">#00384D</color>
+    <color name="primary">#128591</color>
+    <color name="primary_dark">#0C626A</color>
     <color name="accent">#4BA8EB</color>
+    <color name="text_primary">#333333</color>
+    <color name="canvas">#F4F7F7</color>
 </resources>

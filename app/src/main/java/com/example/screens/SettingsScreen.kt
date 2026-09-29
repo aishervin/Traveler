@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.api.GeminiKeyStore
 
@@ -16,12 +17,17 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onLogout: () -> Unit
 ) {
+    var apiBaseUrl by remember { mutableStateOf(GeminiKeyStore.getApiBaseUrl(context)) }
+    var servicePassword by remember { mutableStateOf(GeminiKeyStore.getServicePassword(context) ?: "") }
+    var securityKey by remember { mutableStateOf(GeminiKeyStore.getSecurityKey(context) ?: "") }
     var apiKey by remember { mutableStateOf(GeminiKeyStore.getGeminiApiKey(context) ?: "") }
     var automationEnabled by remember { mutableStateOf(GeminiKeyStore.isAutomationEnabled(context)) }
     var message by remember { mutableStateOf("") }
 
     fun save() {
         try {
+            GeminiKeyStore.saveApiBaseUrl(context, apiBaseUrl)
+            GeminiKeyStore.saveServiceCredentials(context, servicePassword, securityKey)
             if (apiKey.isNotBlank()) {
                 GeminiKeyStore.saveGeminiApiKey(context, apiKey)
             } else {
@@ -53,12 +59,52 @@ fun SettingsScreen(
         ) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
+                    Text("اتصال به سامانه بارنامه", style = MaterialTheme.typography.titleSmall)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = apiBaseUrl,
+                        onValueChange = { apiBaseUrl = it },
+                        label = { Text("نشانی HTTPS سرویس") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = servicePassword,
+                        onValueChange = { servicePassword = it },
+                        label = { Text("ServicePassword (اختیاری)") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = securityKey,
+                        onValueChange = { securityKey = it },
+                        label = { Text("SecurityKey (اختیاری)") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(5.dp))
+                    Text(
+                        "کلیدهای سرویس فقط روی این دستگاه و به‌صورت رمزگذاری‌شده نگه‌داری می‌شوند.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Text("کلید API گوگل جمینای (Gemini)", style = MaterialTheme.typography.titleSmall)
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = apiKey,
                         onValueChange = { apiKey = it },
                         label = { Text("کلید API") },
+                        visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )

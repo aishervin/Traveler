@@ -16,3 +16,11 @@ data class ShipmentItem(
     val cargo: String,
     val status: String
 )
+
+data class GpsPoint(
+    val type: Int = 3,
+    val longitude: Double,
+    val latitude: Double,
+    val speed: Double,
+    val date: String
+)

@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 fun GeminiAutomationScreen(
     context: android.content.Context,
     onOpenSettings: () -> Unit,
+    onNavigate: ((String) -> Unit)? = null,
     onBack: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -48,7 +49,7 @@ fun GeminiAutomationScreen(
 
         coroutineScope.launch {
             try {
-                val responseText = GeminiService.runTurn(context, messages, text)
+                val responseText = GeminiService.runTurn(context, messages, text, onNavigate)
                 val assistantMsg = ChatMessage(id = "a-${System.currentTimeMillis()}", role = "assistant", text = responseText)
                 messages = messages + assistantMsg
             } catch (e: Exception) {

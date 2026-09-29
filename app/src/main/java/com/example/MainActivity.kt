@@ -19,13 +19,21 @@ class MainActivity : ComponentActivity() {
                 var currentScreen by remember { mutableStateOf("dashboard") }
                 var session by remember {
                     mutableStateOf<Map<String, Any>?>(
-                        if (GeminiKeyStore.getAccessToken(applicationContext) != null) mapOf("mode" to "live") else null
+                        GeminiKeyStore.getAccessToken(applicationContext)
+                            ?.takeIf(String::isNotBlank)
+                            ?.let {
+                                mapOf(
+                                    "mode" to "live",
+                                    "nationalCode" to (GeminiKeyStore.getNationalCode(applicationContext) ?: "")
+                                )
+                            }
                     )
                 }
                 var selectedShipment by remember { mutableStateOf<ShipmentItem?>(null) }
                 var placeholderTitle by remember { mutableStateOf("") }
+                var returnToShipments by remember { mutableStateOf("dashboard") }
 
-                if (session == null) {
+                if (session == null && currentScreen != "placeholder") {
                     LoginScreen(
                         context = applicationContext,
                         onSignedIn = { s ->
@@ -39,6 +47,11 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     )
+                } else if (session == null) {
+                    PlaceholderScreen(
+                        title = placeholderTitle,
+                        onBack = { currentScreen = "login" }
+                    )
                 } else {
                     when (currentScreen) {
                         "dashboard" -> DashboardScreen(
@@ -49,10 +62,11 @@ class MainActivity : ComponentActivity() {
                                     "newdoc" -> { placeholderTitle = "بارنامه حقیقی"; currentScreen = "placeholder" }
                                     "daily" -> { placeholderTitle = "بارنامه روزانه"; currentScreen = "placeholder" }
                                     "carrying" -> currentScreen = "shipments_carrying"
-                                    "history" -> { placeholderTitle = "تاریخچه اسناد حمل"; currentScreen = "placeholder" }
+                                     "history" -> currentScreen = "shipments_issued"
                                     "wallet" -> { placeholderTitle = "کیف پول اعتباری"; currentScreen = "placeholder" }
                                     "fuel" -> { placeholderTitle = "سهمیه سوخت"; currentScreen = "placeholder" }
                                     "inbox" -> { placeholderTitle = "پیام‌ها"; currentScreen = "placeholder" }
+                                    "automation" -> currentScreen = "automation"
                                     "settings" -> currentScreen = "settings"
                                 }
                             },
@@ -64,6 +78,7 @@ class MainActivity : ComponentActivity() {
                             mode = session?.get("mode") as? String,
                             onSelect = { item ->
                                 selectedShipment = item
+                                returnToShipments = "shipments_issued"
                                 currentScreen = "details"
                             },
                             onBack = { currentScreen = "dashboard" }
@@ -74,6 +89,7 @@ class MainActivity : ComponentActivity() {
                             mode = session?.get("mode") as? String,
                             onSelect = { item ->
                                 selectedShipment = item
+                                returnToShipments = "shipments_carrying"
                                 currentScreen = "details"
                             },
                             onBack = { currentScreen = "dashboard" }
@@ -83,7 +99,8 @@ class MainActivity : ComponentActivity() {
                                 ShipmentDetailsScreen(
                                     context = applicationContext,
                                     shipment = selectedShipment!!,
-                                    onBack = { currentScreen = "dashboard" },
+                                    demoMode = session?.get("mode") == "demo",
+                                    onBack = { currentScreen = returnToShipments },
                                     onTripUpdated = { currentScreen = "dashboard" }
                                 )
                             } else {
@@ -93,6 +110,19 @@ class MainActivity : ComponentActivity() {
                         "automation" -> GeminiAutomationScreen(
                             context = applicationContext,
                             onOpenSettings = { currentScreen = "settings" },
+                            onNavigate = { section ->
+                                currentScreen = when (section) {
+                                    "issued" -> "shipments_issued"
+                                    "carrying" -> "shipments_carrying"
+                                    "settings" -> "settings"
+                                    "newdoc" -> { placeholderTitle = "بارنامه حقیقی"; "placeholder" }
+                                    "daily" -> { placeholderTitle = "بارنامه روزانه"; "placeholder" }
+                                    "wallet" -> { placeholderTitle = "کیف پول اعتباری"; "placeholder" }
+                                    "fuel" -> { placeholderTitle = "سهمیه سوخت"; "placeholder" }
+                                    "inbox" -> { placeholderTitle = "پیام‌ها"; "placeholder" }
+                                    else -> "dashboard"
+                                }
+                            },
                             onBack = { currentScreen = "dashboard" }
                         )
                         "settings" -> SettingsScreen(

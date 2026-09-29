@@ -1,8 +1,10 @@
 package com.example.automation
 
 import android.content.Context
+import com.example.api.GeminiKeyStore
+import com.example.api.LocationCapture
+import com.example.api.TripTrackingService
 import com.example.api.TripService
-import com.example.api.ShipmentItem
 
 object ToolRegistry {
 
@@ -104,8 +106,9 @@ object ToolRegistry {
         )
     }
 
-    fun executeTool(context: Context, name: String, args: Map<String, Any>, onNavigate: ((String) -> Unit)? = null): Any {
-        val policyEnabled = com.example.api.GeminiKeyStore.isAutomationEnabled(context)
+    suspend fun executeTool(context: Context, name: String, args: Map<String, Any>, onNavigate: ((String) -> Unit)? = null): Any {
+        val policyEnabled = GeminiKeyStore.isAutomationEnabled(context)
+        val demoMode = GeminiKeyStore.getAccessToken(context).isNullOrBlank()
         if (name != "get_local_time" && !policyEnabled) {
             throw IllegalStateException("برای اجرای این فرمان، ابتدا باید اجازه اتوماسیون را در تنظیمات فعال کنید.")
         }
@@ -121,30 +124,42 @@ object ToolRegistry {
             }
             "list_shipments" -> {
                 val status = (args["status"] as? String) ?: "carrying"
-                TripService.listShipments(context, status, true)
+                TripService.listShipments(context, status, demoMode)
             }
             "get_shipment_details" -> {
                 val docId = (args["documentId"] as? String) ?: throw IllegalArgumentException("شناسه سند لازم است.")
-                TripService.getShipmentDetails(context, docId, true)
+                TripService.getShipmentDetails(context, docId, demoMode)
+                    ?: throw IllegalArgumentException("سند پیدا نشد.")
             }
             "get_trip_status" -> {
                 val active = TripService.getActiveTrip(context)
                 mapOf(
                     "activeTrip" to active,
-                    "tracking" to true,
-                    "savedRoutePointCount" to 12
+                    "tracking" to (active != null && !demoMode),
+                    "savedRoutePointCount" to TripService.getRoutePointCount(context)
                 )
             }
             "start_trip" -> {
                 val docId = (args["documentId"] as? String) ?: throw IllegalArgumentException("شناسه سند لازم است.")
-                val shipments = TripService.listShipments(context, "issued", true)
-                val target = shipments.find { it.id == docId } ?: shipments.firstOrNull() ?: throw IllegalArgumentException("سند پیدا نشد.")
-                TripService.startTrip(context, target)
-                mapOf("success" to true, "documentId" to docId, "status" to "carrying")
+                val shipments = TripService.listShipments(context, "issued", demoMode)
+                val target = shipments.find { it.id == docId } ?: throw IllegalArgumentException("سند پیدا نشد.")
+                val location = if (demoMode) null else LocationCapture.current(context)
+                TripService.startTrip(context, target, location, demoMode)
+                val trackingRequested = if (demoMode) false else {
+                    runCatching { TripTrackingService.start(context, docId) }.isSuccess
+                }
+                mapOf("success" to true, "documentId" to docId, "status" to "carrying", "trackingRequested" to trackingRequested)
             }
             "finish_trip" -> {
                 val docId = (args["documentId"] as? String) ?: throw IllegalArgumentException("شناسه سند لازم است.")
-                TripService.finishTrip(context, docId)
+                val location = if (demoMode) null else LocationCapture.current(context)
+                if (!demoMode) TripTrackingService.stop(context)
+                try {
+                    TripService.finishTrip(context, docId, location, demoMode)
+                } catch (issue: Exception) {
+                    if (!demoMode) runCatching { TripTrackingService.start(context, docId) }
+                    throw issue
+                }
                 mapOf("success" to true, "documentId" to docId, "status" to "issued")
             }
             "schedule_task" -> {

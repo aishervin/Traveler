@@ -1,28 +1,34 @@
 package com.example.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.example.R
 import com.example.api.ShipmentItem
 import com.example.api.TripService
 
-data class ServiceTile(val key: String, val title: String)
+data class ServiceTile(val key: String, val title: String, val image: Int)
 
-val tiles = listOf(
-    ServiceTile("newdoc", "بارنامه حقیقی"),
-    ServiceTile("daily", "بارنامه روزانه"),
-    ServiceTile("carrying", "اسناد در حال حمل"),
-    ServiceTile("history", "تاریخچه اسناد حمل"),
-    ServiceTile("wallet", "کیف پول اعتباری"),
-    ServiceTile("fuel", "سهمیه سوخت"),
-    ServiceTile("inbox", "پیام‌ها"),
-    ServiceTile("settings", "تنظیمات و حساب")
+private val tiles = listOf(
+    ServiceTile("newdoc", "بارنامه حقیقی", R.drawable.baarbarg_hagigi),
+    ServiceTile("daily", "بارنامه روزانه", R.drawable.baarbarg_daily),
+    ServiceTile("carrying", "اسناد در حال حمل", R.drawable.iconcarying),
+    ServiceTile("history", "تاریخچه اسناد حمل", R.drawable.shipping_doc_history),
+    ServiceTile("wallet", "کیف پول اعتباری", R.drawable.wallet),
+    ServiceTile("fuel", "سهمیه سوخت", R.drawable.gas_station),
+    ServiceTile("inbox", "پیام‌ها", R.drawable.contactus),
+    ServiceTile("automation", "اتوماسیون Gemini", R.drawable.logo_app),
+    ServiceTile("settings", "تنظیمات و حساب", R.drawable.images_userprofilenoimage)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,10 +48,10 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("سامانه باربر - داشبورد") },
+                title = { Text("صدور بارنامه شهری") },
                 actions = {
                     TextButton(onClick = onOpenAutomation) {
-                        Text("🤖 دستیار هوشمند")
+                        Text("دستیار هوشمند")
                     }
                 }
             )
@@ -56,80 +62,121 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(126.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = "به سامانه خوش آمدید", style = MaterialTheme.typography.bodySmall)
+                Image(
+                    painter = painterResource(R.drawable.mainpagebkscreen),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(horizontal = 18.dp),
+                    horizontalAlignment = Alignment.End
+                ) {
                     Text(
-                        text = if (session?.get("mode") == "demo") "کاربر آزمایشی" else (session?.get("nationalCode") as? String ?: "کاربر گرامی"),
-                        style = MaterialTheme.typography.titleMedium
+                        "به سامانه خوش آمدید",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Text(
+                        text = if (session?.get("mode") == "demo") "کاربر آزمایشی"
+                        else (session?.get("nationalCode") as? String ?: "کاربر گرامی"),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
 
             if (session?.get("mode") == "demo") {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(Modifier.height(12.dp))
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
                     Text(
-                        text = "حالت آزمایشی فعال است · هیچ عملیات واقعی روی سرور انجام نمی‌شود.",
+                        text = "حالت آزمایشی فعال است؛ هیچ عملیات واقعی روی سرور انجام نمی‌شود.",
                         modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
                     )
                 }
             }
 
             if (activeTrip != null) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(Modifier.height(12.dp))
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onOpen("carrying") },
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(15.dp)) {
                         Text("بارنامه در حال حمل فعال", style = MaterialTheme.typography.titleSmall)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("شماره سند: ${activeTrip?.docNo} (${activeTrip?.origin} ← ${activeTrip?.destination})", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "شماره سند: ${activeTrip?.docNo} · ${activeTrip?.origin} تا ${activeTrip?.destination}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("خدمات سامانه", style = MaterialTheme.typography.titleSmall)
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Spacer(Modifier.height(18.dp))
+            Text("خدمات سامانه", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(10.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 tiles.chunked(2).forEach { rowTiles ->
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(9.dp)
+                    ) {
                         rowTiles.forEach { tile ->
                             Card(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(90.dp)
+                                    .height(128.dp)
                                     .clickable { onOpen(tile.key) },
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                             ) {
-                                Box(
+                                Column(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .padding(12.dp),
-                                    contentAlignment = Alignment.Center
+                                        .padding(10.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
                                 ) {
+                                    Surface(
+                                        modifier = Modifier.size(60.dp),
+                                        shape = CircleShape,
+                                        color = if (tile.key == "carrying" || tile.key == "inbox" || tile.key == "automation") {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.background
+                                        }
+                                    ) {
+                                        Image(
+                                            painter = painterResource(tile.image),
+                                            contentDescription = null,
+                                            modifier = Modifier.padding(9.dp),
+                                            contentScale = ContentScale.Fit
+                                        )
+                                    }
+                                    Spacer(Modifier.height(7.dp))
                                     Text(
                                         text = tile.title,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 2
                                     )
                                 }
                             }
                         }
-                        if (rowTiles.size == 1) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
+                        if (rowTiles.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
             }

@@ -40,7 +40,7 @@ object GeminiService {
             throw IllegalStateException("برای اجرای فرمان‌ها و اتوماسیون، اجازه اتوماسیون را در تنظیمات فعال کنید.")
         }
 
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey"
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 
         val contentsArray = JSONArray()
         for (msg in messages) {
@@ -88,6 +88,7 @@ object GeminiService {
         val body = requestBodyJson.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
         val request = Request.Builder()
             .url(url)
+            .header("x-goog-api-key", apiKey)
             .post(body)
             .build()
 

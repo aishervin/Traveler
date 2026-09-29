@@ -1,12 +1,12 @@
-node_modules/
-.expo/
-android/
-ios/
-dist/
+.gradle/
+build/
+app/build/
+local.properties
 *.jks
 *.keystore
 .env.local
 *.apk
+!releases/Traveler-debug.apk
 *.aab
 reference/decompiled/*.js
 assets/images/mainpagebkscreen.png

@@ -1,0 +1,50 @@
+name: Deploy tool catalog to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'releases/Traveler-debug.apk'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Prepare site files
+        run: |
+          mkdir -p _site/releases _site/assets/fonts
+          cp index.html _site/index.html
+          cp assets/fonts/IRANSansMobile.ttf assets/fonts/IRANSansMobile_Bold.ttf _site/assets/fonts/
+          if [ -f releases/Traveler-debug.apk ]; then
+            cp releases/Traveler-debug.apk _site/releases/Traveler-debug.apk
+          fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -16,17 +16,13 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField(
+            "String",
+            "BAARBARG_API_BASE_URL",
+            "\"https://mobservices-barname.utcms.ir/baarnameh_sd/API\""
+        )
         vectorDrawables {
             useSupportLibrary = true
-        }
-    }
-
-    signingConfigs {
-        getByName("debug") {
-            storeFile = file("${rootProject.projectDir}/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
         }
     }
 
@@ -75,6 +71,7 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.2.1")
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.navigation:navigation-compose:2.7.7")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
     
     // Networking & Serialization
     implementation("com.squareup.retrofit2:retrofit:2.9.0")

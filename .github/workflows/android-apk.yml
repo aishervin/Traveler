@@ -3,23 +3,19 @@ name: Android APK
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
-    name: Test and build debug APK
+    name: Test and publish debug APK
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
         uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -27,56 +23,39 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Verify runner Android SDK
-        run: test -n "$ANDROID_HOME" && test -x "$ANDROID_HOME/platform-tools/adb"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Run contract tests
-        run: node --test tests/*.test.js
+      - name: Install Android SDK packages
+        run: sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Install JavaScript dependencies
-        run: npm install --no-audit --no-fund
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
 
-      - name: Generate Android project
-        env:
-          EXPO_PUBLIC_DEMO_MODE: 'false'
-        run: npx expo prebuild --platform android --non-interactive
-
-      - name: Embed JavaScript bundle in debug APK
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const file = 'android/app/build.gradle';
-          let source = fs.readFileSync(file, 'utf8');
-          const start = source.indexOf('react {');
-          const end = start < 0 ? -1 : source.indexOf('\n}', start);
-          if (start < 0 || end < 0) throw new Error('React Gradle block was not found.');
-          let block = source.slice(start, end);
-          block = block.replace(/^\s*\/\/\s*debuggableVariants\s*=.*$/gm, '');
-          block = block.replace(/^\s*debuggableVariants\s*=.*$/gm, '');
-          block += '\n    debuggableVariants = []';
-          fs.writeFileSync(file, source.slice(0, start) + block + source.slice(end));
-          NODE
-
-      - name: Build standalone debug APK
-        run: cd android && ./gradlew --no-daemon assembleDebug
-
-      - name: Verify APK contains the JavaScript bundle
-        run: |
-          node <<'NODE'
-          const { execFileSync } = require('node:child_process');
-          const apk = 'android/app/build/outputs/apk/debug/app-debug.apk';
-          const entries = execFileSync('unzip', ['-Z1', apk], { encoding: 'utf8' });
-          if (!entries.split('\n').includes('assets/index.android.bundle')) {
-            throw new Error('APK is missing assets/index.android.bundle and would require Metro.');
-          }
-          const bundle = execFileSync('unzip', ['-p', apk, 'assets/index.android.bundle'], { maxBuffer: 100 * 1024 * 1024 });
-          if (bundle.length < 100_000) throw new Error('The embedded JavaScript bundle is unexpectedly small.');
-          NODE
+      - name: Run tests and build debug APK
+        run: gradle --no-daemon testDebugUnitTest assembleDebug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: base-2-agentic-fork-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: traveler-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish test APK to repository
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p releases
+          cp app/build/outputs/apk/debug/app-debug.apk releases/Traveler-debug.apk
+          git add releases/Traveler-debug.apk
+          if git diff --cached --quiet; then
+            echo "Test APK is unchanged."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "build: publish test APK [skip ci]"
+            git push
+          fi
