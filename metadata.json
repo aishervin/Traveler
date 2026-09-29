@@ -1,0 +1,6 @@
+{
+  "name": "Baarbarg Transport",
+  "description": "Logistics, shipping, and cargo transport management app with Gemini automation and live trip tracking",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
